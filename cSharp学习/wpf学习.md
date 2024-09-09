@@ -8,7 +8,7 @@
 
 经典HelloWorld开局，创建WPF后界面如下：
 
-<img src="E:\blog\git_docsify\cSharp学习\assets\image-20240909223446387.png" alt="image-20240909223446387" style="zoom:50%;" />
+![image-20240909231604852](assets/image-20240909231604852.png)
 
 下方为XAML代码，用来改变界面的，例如在Grid中增加一个`<TextBlock>`
 
@@ -31,11 +31,11 @@
 
 界面显示结果如下：
 
-<img src="E:\blog\git_docsify\cSharp学习\assets\image-20240909223902206.png" alt="image-20240909223902206" style="zoom: 50%;" />
+<img src="assets/image-20240909223902206-1725894984784-1.png" alt="image-20240909223902206" style="zoom: 50%;" />
 
 该程序中主要包括以下文件：
 
-![image-20240909224126352](E:\blog\git_docsify\cSharp学习\assets\image-20240909224126352.png)
+![image-20240909224126352](assets/image-20240909224126352-1725894988167-3.png)
 
 其中，`MainWindow.xaml`为主窗体，其代码由上面的代码组成。
 
