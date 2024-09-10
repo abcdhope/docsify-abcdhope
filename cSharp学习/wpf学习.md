@@ -176,3 +176,139 @@ namespace System.Windows
 
 Application类继承于DispatcherObject父类，DispatcherObject是WPF的最终抽象基类。
 
+## Application的生命周期
+
+软件的生命周期，指启动软件到关闭软件的整个过程。
+
+从上一节得知App类继承Application，那么可以重写一些方法，现在重写`OnActivated`、`OnStartup`、`OnDeactivated`、`OnExit`这几个方法：
+
+```c#
+namespace WpfHelloWorld
+{
+    /// <summary>
+    /// App.xaml 的交互逻辑
+    /// </summary>
+    public partial class App : Application
+    {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            Console.WriteLine("1.OnStartup被触发");
+        }
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            Console.WriteLine("2.OnActivated被触发");
+        }
+        protected override void OnDeactivated(EventArgs e)
+        {
+            base.OnDeactivated(e);
+            Console.WriteLine("3.OnDeactivated被触发");
+        }
+        protected override void OnExit(ExitEventArgs e)
+        {
+            base.OnExit(e);
+            Console.WriteLine("4.OnExit被触发");
+        }
+    }
+}
+```
+
+现在按顺序执行下列操作：启动程序、隐藏程序、打开程序、关闭程序。这时代码运行的结果为：
+
+![image-20240910224702142](assets/image-20240910224702142.png)
+
+可以看到启动程序时自动调用`OnStartup`和`OnActivated`，隐藏程序时`OnDeactivated`，打开程序时`OnActivated`，关闭程序时`OnDeactivated`和`OnExit`，这是由于`OnActivated`表示激活程序时，而`OnDeactivated`表示激活状态转换为非激活状态。
+
+由此得知，Application即程序的生命周期为:OnStartup->OnActivated->OnDeactivated->OnExit.
+
+## Window窗体的生命周期
+
+目前只创建了一个窗体即主窗体，实际上一个应用实例可以创建多个窗体。
+
+现在在主窗体的构造函数中写下如下代码来观察主窗体和应用程序的调用顺序：
+
+```c#
+namespace WpfHelloWorld
+{
+    /// <summary>
+    /// MainWindow.xaml 的交互逻辑
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+            this.SourceInitialized += (s, e) => Console.WriteLine("1.MainWindow的SourceInitialized被执行");
+
+            this.Activated += (s, e) => Console.WriteLine("2.MainWindow的Activated被执行");
+
+            this.Loaded += (s, e) => Console.WriteLine("3.MainWindow的Loaded被执行");
+
+            this.ContentRendered += (s, e) => Console.WriteLine("4.MainWindow的ContentRendered被执行");
+
+            this.Deactivated += (s, e) => Console.WriteLine("5.MainWindow的Deactivated被执行");
+
+            this.Closing += (s, e) => Console.WriteLine("6.MainWindow的Closing被执行");
+
+            this.Closed += (s, e) => Console.WriteLine("7.MainWindow的Closed被执行");
+
+            this.Unloaded += (s, e) => Console.WriteLine("8.MainWindow的Unloaded被执行");
+        }
+    }
+}
+```
+
+运行结果如下：
+
+![image-20240910225625295](assets/image-20240910225625295.png)
+
+其中，主窗体触发的事件含义为：
+
+| 方法              | 含义                                           |
+| ----------------- | ---------------------------------------------- |
+| SourceInitialized | 创建窗体源时引发此事件                         |
+| Activated         | 当前窗体成为前台窗体时引发此事件               |
+| Loaded            | 当前窗体内部所有元素完成布局和呈现时引发此事件 |
+| ContentRendered   | 当前窗体的内容呈现之后引发此事件               |
+| Closing           | 当前窗体关闭之前引发此事件                     |
+| Deactivated       | 当前窗体成为后台窗体时引发此事件               |
+| Closed            | 当前窗体关闭之后引发此事件                     |
+| Unloaded          | 当前窗体从元素树中删除时引发此事件             |
+
+从运行结果可以得知：
+
+窗体的运行周期为：
+
+![img](assets/2023081108182280.jpg)
+
+并且可以看到：应用程序开启后先调用本身的启动方法再调用窗体的启动方法，同时激活时也是程序优先激活，而转为非激活状态时窗体先于程序，关闭时也是窗体先关闭。有点类似于基类和派生类的构造函数和析构函数的调用，先是调用基类的构造函数再调用派生类，而结束时先调用派生类的析构函数。
+
+## Window窗体的组成
+
+窗体本质上是一个控件，但它具有Closing和Closed事件，而一般控件没有关闭功能。
+
+窗体分为工作区和非工作区。工作区就是放置控件的区域，也就是中间部分，而非工作区就是外框部分例如图标、标题、最大最小按钮等。
+
+例如之前的xaml代码中:
+
+```xaml
+<Window x:Class="WpfHelloWorld.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfHelloWorld"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <TextBlock Text="Hello, World" FontSize="48" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+    </Grid>
+</Window>
+```
+
+该代码表示为在窗体中心放置一个`TextBlock`控件:
+
+![image-20240910231354841](assets/image-20240910231354841.png)
+
+窗体的工作区本质是Window类的Content属性（在基类ContentControl中），该属性类型为object，只接受一个对象，因此默认的`<Window></Window>`之中只能存在一个控件。为了能够放置多个控件，可以在控件中放置控件，例如上例中在Grid控件中放置TextBlock文字块控件。
