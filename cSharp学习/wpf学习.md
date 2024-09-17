@@ -312,3 +312,121 @@ namespace WpfHelloWorld
 ![image-20240910231354841](assets/image-20240910231354841.png)
 
 窗体的工作区本质是Window类的Content属性（在基类ContentControl中），该属性类型为object，只接受一个对象，因此默认的`<Window></Window>`之中只能存在一个控件。为了能够放置多个控件，可以在控件中放置控件，例如上例中在Grid控件中放置TextBlock文字块控件。
+
+# 控件父类
+
+大多数控件都继承于下列几个父类：
+
+![img](assets/2023081203432433-1726581882482-1.png)
+
+## DispatcherObject类
+
+.net为WPF准备了两个线程：UI线程与后台线程。UI线程用于界面操作例如鼠标点击、界面更新等，而后台线程用于计算、文件读写等操作。
+
+若后台线程要访问UI线程的控件，则可以通过DispatcherObject类的`Dispatcher`成员的两个方法：Invoke和BeginInvoke。Invoke 是同步的， BeginInvoke 是异步的。
+
+例如添加一个按钮，然后创建一个子线程来调用按钮的Invoke方法：
+
+```c#
+// 后台程序
+public partial class MainWindow : Window
+{
+    public MainWindow()
+    {
+        InitializeComponent();
+        Task.Factory.StartNew(() =>
+        {
+            Task.Delay(2000).Wait();
+            button1.Dispatcher.Invoke(() =>
+            {
+                button1.Content = "abcdhope";
+            });
+        });
+    }
+}
+
+```
+
+```xaml
+ <!-- 前台代码 -->
+<Window x:Class="WpfDispatcher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfDispatcher"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Button x:Name="button1"/>
+    </Grid>
+</Window>
+```
+
+后台代码的意思是：创建一个子线程并创建匿名函数，匿名函数中首先等待两秒，然后执行button控件的invoke方法，方法内又调用一个匿名函数将控件的内容修改为abcdhope。
+
+![image-20240917223032066](assets/image-20240917223032066.png)
+
+## DependencyObject类
+
+在winform中，改变一个控件的值通常采用以下方法：
+
+```c#
+button1.Text = "确定";
+```
+
+这种方法叫做`事件驱动模式`。每当需要更新的时候直接进行赋值。
+
+而还有一种模式即数据驱动模式，这种模式通过其他变量的更新来更新控件的值。
+
+DependencyObject类通过`GetValue`和`SetValue`来获取与设置属性的值，其中`GetValue`返回object值，`SetValue`的第一个参数为需要设置的属性，第二个为设置的值。
+
+```c#
+public class DependencyObject : DispatcherObject
+{
+    public DependencyObject();
+ 
+    public DependencyObjectType DependencyObjectType { get; }
+    public bool IsSealed { get; }
+ 
+    public void ClearValue(DependencyProperty dp);
+    public void ClearValue(DependencyPropertyKey key);
+    public void CoerceValue(DependencyProperty dp);
+    public sealed override bool Equals(object obj);
+    public sealed override int GetHashCode();
+    public LocalValueEnumerator GetLocalValueEnumerator();
+    public object GetValue(DependencyProperty dp);
+    public void InvalidateProperty(DependencyProperty dp);
+    public object ReadLocalValue(DependencyProperty dp);
+    public void SetCurrentValue(DependencyProperty dp, object value);
+    public void SetValue(DependencyProperty dp, object value);
+    public void SetValue(DependencyPropertyKey key, object value);
+    protected virtual void OnPropertyChanged(DependencyPropertyChangedEventArgs e);
+    protected internal virtual bool ShouldSerializeProperty(DependencyProperty dp);
+ 
+}
+```
+
+## Visual类
+
+visual类用于对界面的呈现：
+
+输出显示：呈现视觉对象的持久、序列化的绘图内容。
+转换：针对**视觉对象**执行转换。
+剪裁：为视觉对象提供**剪裁**区域支持。
+命中测试：确定坐标或几何形状是否包含在视觉对象的边界内。
+边框计算：确定视觉对象的**边框**。
+
+控件能够使用的方法成员有：
+
+- DependencyObject **FindCommonVisualAncestor**(DependencyObject otherVisual); //返回两个可视对象的公共上级。
+- bool **IsAncestorOf**(DependencyObject descendant); //确定可视对象是否为后代可视对象的上级。
+- bool **IsDescendantOf**(DependencyObject ancestor); //确定可视对象是否为上级可视对象的后代。
+- Point **PointFromScreen**(Point point); //将屏幕坐标中的 Point 转换为表示 Point 的当前坐标系的 Visual。
+- Point **PointToScreen**(Point point); //将表示 Point 的当前坐标系的 Visual 转换为屏幕坐标中的 Point。
+- GeneralTransform2DTo3D **TransformToAncestor**(Visual3D ancestor); //返回一个转换，该转换可用于将 Visual 中的坐标转换为可视对象的指定 Visual3D 上级。
+- GeneralTransform **TransformToAncestor**(Visual ancestor); //返回一个转换，该转换可用于将 Visual 中的坐标转换为可视对象的指定 Visual 上级。
+- GeneralTransform **TransformToDescendant**(Visual descendant); //返回一个转换，该转换可用于将 Visual 中的坐标转换为指定的可视对象后代。
+- GeneralTransform **TransformToVisual**(Visual visual); //返回一个转换，该转换可用于将 Visual 中的坐标转换为指定的可视对象。
+
+从上面几个方法中来看有点抽象，大多数都是将坐标进行转换，看起来像是对布局进行绘制，例如创建一个布局控件，然后在布局中创建子控件，Visual类负责将控件的位置进行转换。
